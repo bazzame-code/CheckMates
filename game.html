@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <title>Online Chess Game</title>
 
-  <!-- Chessboard.js 0.3.0 CSS from cdnjs (includes images) -->
+  <!-- Chessboard.js CSS (no images included – we host them ourselves) -->
   <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/0.3.0/css/chessboard.min.css">
+        href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 
   <style>
     body {
@@ -130,6 +130,12 @@
       box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
     }
 
+    button.ghost {
+      background: #e5e7eb;
+      color: #374151;
+      box-shadow: none;
+    }
+
     button:hover {
       transform: translateY(-1px);
     }
@@ -165,6 +171,17 @@
       width: 100%;
     }
 
+    .nav-row {
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
+    }
+
+    .nav-row button {
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+
     /* Board square colors */
     .white-1e1d7 {
       background-color: #f9fbff;
@@ -177,6 +194,10 @@
 </head>
 <body>
   <div class="app">
+    <div class="nav-row">
+      <button id="back-lobby-btn" class="ghost">← Back to lobby</button>
+    </div>
+
     <h1>Online Chess</h1>
     <p class="subtitle">
       <span id="role-text"></span><br>
@@ -220,13 +241,11 @@
   <!-- Chess.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.min.js"></script>
 
-  <!-- jQuery required by chessboard.js -->
-  <script src="https://code.jquery.com/jquery-3.5.1.min.js"
-          integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"
-          crossorigin="anonymous"></script>
+  <!-- jQuery (required by chessboard.js) -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 
-  <!-- Chessboard.js 0.3.0 JS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/0.3.0/js/chessboard.min.js"></script>
+  <!-- Chessboard.js JS -->
+  <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 
   <script>
     // --- URL params: game ID + role + name ---
@@ -248,9 +267,14 @@
     const acceptDrawBtn = document.getElementById('accept-draw-btn');
     const declineDrawBtn = document.getElementById('decline-draw-btn');
     const resetBtn = document.getElementById('reset-btn');
+    const backLobbyBtn = document.getElementById('back-lobby-btn');
 
     gameIdEl.textContent = gameId || 'unknown';
     roleTextEl.textContent = role === 'white' ? 'You are playing as White' : 'You are playing as Black';
+
+    backLobbyBtn.onclick = () => {
+      window.location.href = 'index.html';
+    };
 
     // --- Firebase init ---
     const app = firebase.initializeApp(firebaseConfig);
@@ -436,7 +460,8 @@
         onDrop: onDrop,
         onSnapEnd: onSnapEnd,
         orientation: role,
-        pieceTheme: 'https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/0.3.0/img/chesspieces/wikipedia/{piece}.png'
+        // 👇 use your OWN hosted images in the repo
+        pieceTheme: 'img/chesspieces/wikipedia/{piece}.png'
       };
       board = Chessboard('board', config);
     }
@@ -613,7 +638,7 @@
     });
 
     resetBtn.onclick = () => {
-      if (!confirm('Reset the game to the starting position? This will NOT reset stats already recorded for finished games.')) return;
+      if (!confirm('Reset the game to the starting position?')) return;
       game.reset();
       const startFen = game.fen();
       const now = Date.now();
@@ -632,6 +657,10 @@
       updateStatus();
       updateLastMoveText();
       updateDrawButtons();
+
+      if (confirm('Game reset. Go back to lobby?')) {
+        window.location.href = 'index.html';
+      }
     };
 
     resignBtn.onclick = () => {
@@ -652,6 +681,10 @@
       updateStatus();
       updateLastMoveText();
       updateDrawButtons();
+
+      if (confirm('You resigned. Go back to lobby?')) {
+        window.location.href = 'index.html';
+      }
     };
 
     offerDrawBtn.onclick = () => {
