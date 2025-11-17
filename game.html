@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Online Chess Game</title>
+
+  <!-- Chessboard.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.css">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .app {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+      max-width: 420px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0;
+      font-weight: 700;
+      color: #1f2933;
+      text-align: center;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 13px;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    #board {
+      width: 360px;
+      max-width: 100%;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.15);
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      font-size: 13px;
+      color: #4b5563;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .players-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 13px;
+      color: #4b5563;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #e5f4ff;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .dot-white, .dot-black {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .dot-white {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+    }
+
+    .dot-black {
+      background: #111827;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 600;
+      background: #10b981;
+      color: #ffffff;
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.2s ease;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35);
+      white-space: nowrap;
+    }
+
+    button.secondary {
+      background: #3b82f6;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.35);
+    }
+
+    button.danger {
+      background: #ef4444;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .status {
+      width: 100%;
+      font-size: 13px;
+      text-align: center;
+      color: #374151;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: #f3f4ff;
+    }
+
+    .small {
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: center;
+    }
+
+    .game-id-display {
+      font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background: #f9fafb;
+      padding: 4px 8px;
+      border-radius: 999px;
+      word-break: break-all;
+    }
+
+    .last-move {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* Board square colors */
+    .white-1e1d7 {
+      background-color: #f9fbff;
+    }
+
+    .black-3c85d {
+      background-color: #9fd2ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Online Chess</h1>
+    <p class="subtitle">
+      <span id="role-text"></span><br>
+      Game ID: <span id="game-id" class="game-id-display"></span>
+    </p>
+
+    <div class="players-row">
+      <div id="white-name-label">White: —</div>
+      <div id="black-name-label">Black: —</div>
+    </div>
+
+    <div id="board"></div>
+
+    <div class="info-row">
+      <div id="turn-pill" class="pill">
+        <span class="dot-white"></span>
+        White to move
+      </div>
+      <button id="reset-btn">Reset game</button>
+    </div>
+
+    <div class="info-row">
+      <button id="resign-btn" class="danger">Resign</button>
+      <button id="offer-draw-btn" class="secondary">Offer draw</button>
+      <button id="accept-draw-btn" class="secondary" style="display:none;">Accept draw</button>
+      <button id="decline-draw-btn" style="display:none;">Decline</button>
+    </div>
+
+    <div id="status" class="status">Connecting…</div>
+    <div id="last-move" class="last-move">Last move: —</div>
+    <div class="small">You can close this page and come back hours or days later — the game continues and stats are saved.</div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <!-- Your Firebase config -->
+  <script src="firebase-config.js"></script>
+
+  <!-- Chess libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard-1.0.0.min.js"></script>
+
+  <script>
+    // --- URL params: game ID + role + name ---
+    const params = new URLSearchParams(window.location.search);
+    const gameId = params.get('game');
+    const role = params.get('role') === 'black' ? 'black' : 'white';
+    const myName = decodeURIComponent(params.get('name') || '') || (role === 'white' ? 'White player' : 'Black player');
+
+    const gameIdEl = document.getElementById('game-id');
+    const roleTextEl = document.getElementById('role-text');
+    const statusEl = document.getElementById('status');
+    const turnPillEl = document.getElementById('turn-pill');
+    const lastMoveEl = document.getElementById('last-move');
+    const whiteNameLabel = document.getElementById('white-name-label');
+    const blackNameLabel = document.getElementById('black-name-label');
+
+    const resignBtn = document.getElementById('resign-btn');
+    const offerDrawBtn = document.getElementById('offer-draw-btn');
+    const acceptDrawBtn = document.getElementById('accept-draw-btn');
+    const declineDrawBtn = document.getElementById('decline-draw-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    gameIdEl.textContent = gameId || 'unknown';
+    roleTextEl.textContent = role === 'white' ? 'You are playing as White' : 'You are playing as Black';
+
+    // --- Firebase init ---
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const gameRef = db.ref('games/' + gameId);
+    const playersStatsRef = db.ref('stats/players');
+    const headToHeadRef = db.ref('stats/headToHead');
+
+    const game = new Chess();
+    let board;
+    let lastTimestamp = null;
+    let currentResult = null;   // e.g. 'white_resigned', 'black_checkmate', 'draw_agreed', 'draw_other'
+    let drawOfferedBy = null;   // 'white' or 'black'
+    let whiteName = 'White';
+    let blackName = 'Black';
+
+    // Helpers
+
+    function slugify(name) {
+      return (name || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'player';
+    }
+
+    function formatTimeAgo(ts) {
+      if (!ts) return '—';
+      const now = Date.now();
+      const diffMs = now - ts;
+      const diffSec = Math.floor(diffMs / 1000);
+      if (diffSec < 60) return 'just now';
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return diffMin + (diffMin === 1 ? ' minute ago' : ' minutes ago');
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return diffHr + (diffHr === 1 ? ' hour ago' : ' hours ago');
+      const diffDays = Math.floor(diffHr / 24);
+      return diffDays + (diffDays === 1 ? ' day ago' : ' days ago');
+    }
+
+    function updateLastMoveText() {
+      if (!lastTimestamp) {
+        lastMoveEl.textContent = 'Last move: —';
+        return;
+      }
+      lastMoveEl.textContent = 'Last move: ' + formatTimeAgo(lastTimestamp);
+    }
+
+    setInterval(updateLastMoveText, 30000);
+
+    function updateNameLabels() {
+      whiteNameLabel.textContent = 'White: ' + whiteName;
+      blackNameLabel.textContent = 'Black: ' + blackName;
+    }
+
+    function updateStatus() {
+      // If there's a recorded result (resign/draw/checkmate flag), show that
+      if (currentResult) {
+        let text = '';
+        if (currentResult === 'white_resigned') {
+          text = whiteName + ' resigned. ' + blackName + ' wins.';
+        } else if (currentResult === 'black_resigned') {
+          text = blackName + ' resigned. ' + whiteName + ' wins.';
+        } else if (currentResult === 'white_checkmate') {
+          text = whiteName + ' wins by checkmate.';
+        } else if (currentResult === 'black_checkmate') {
+          text = blackName + ' wins by checkmate.';
+        } else if (currentResult === 'draw_agreed' || currentResult === 'draw_other') {
+          text = 'Game drawn.';
+        }
+        statusEl.textContent = text;
+        return;
+      }
+
+      let text = '';
+      const moveColor = game.turn() === 'w' ? 'White' : 'Black';
+
+      if (game.in_checkmate()) {
+        text = 'Checkmate! ' + (moveColor === 'White' ? blackName : whiteName) + ' wins.';
+      } else if (game.in_draw()) {
+        text = 'Game over – draw.';
+      } else {
+        const who = moveColor === 'White' ? whiteName : blackName;
+        text = who + ' to move';
+        if (game.in_check()) {
+          text += ' – check!';
+        }
+      }
+
+      if (drawOfferedBy && !currentResult) {
+        const who = drawOfferedBy === 'white' ? whiteName : blackName;
+        if ((drawOfferedBy === 'white' && role === 'white') ||
+            (drawOfferedBy === 'black' && role === 'black')) {
+          text += ' (You offered a draw.)';
+        } else {
+          text += ' (' + who + ' has offered a draw.)';
+        }
+      }
+
+      statusEl.textContent = text;
+    }
+
+    function updateTurnPill() {
+      if (game.turn() === 'w') {
+        turnPillEl.innerHTML = '<span class="dot-white"></span> White to move';
+      } else {
+        turnPillEl.innerHTML = '<span class="dot-black"></span> Black to move';
+      }
+    }
+
+    function updateDrawButtons() {
+      offerDrawBtn.style.display = 'inline-block';
+      acceptDrawBtn.style.display = 'none';
+      declineDrawBtn.style.display = 'none';
+
+      if (currentResult) {
+        offerDrawBtn.style.display = 'none';
+        return;
+      }
+
+      if (!drawOfferedBy) return;
+
+      if ((drawOfferedBy === 'white' && role === 'white') ||
+          (drawOfferedBy === 'black' && role === 'black')) {
+        offerDrawBtn.style.display = 'none';
+      } else {
+        offerDrawBtn.style.display = 'none';
+        acceptDrawBtn.style.display = 'inline-block';
+        declineDrawBtn.style.display = 'inline-block';
+      }
+    }
+
+    function onDragStart(source, piece) {
+      if (!game || !gameId) return false;
+      if (game.game_over()) return false;
+      if (currentResult) return false;
+
+      if (role === 'white' && piece.search(/^b/) !== -1) return false;
+      if (role === 'black' && piece.search(/^w/) !== -1) return false;
+
+      if (role === 'white' && game.turn() !== 'w') return false;
+      if (role === 'black' && game.turn() !== 'b') return false;
+    }
+
+    function onDrop(source, target) {
+      const move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q'
+      });
+
+      if (move === null) return 'snapback';
+
+      const newFen = game.fen();
+      const now = Date.now();
+      const update = {
+        fen: newFen,
+        lastMoveTs: now
+      };
+
+      // If no result yet, see if this move ended the game by checkmate/draw
+      if (!currentResult) {
+        if (game.in_checkmate()) {
+          // move.color is the side that just moved and delivered mate
+          update.result = (move.color === 'w') ? 'white_checkmate' : 'black_checkmate';
+        } else if (game.in_draw()) {
+          update.result = 'draw_other';
+        }
+      }
+
+      gameRef.update(update);
+
+      lastTimestamp = now;
+      updateTurnPill();
+      updateStatus();
+      updateLastMoveText();
+    }
+
+    function onSnapEnd() {
+      board.position(game.fen());
+    }
+
+    function createBoard(initialFen) {
+      const config = {
+        draggable: true,
+        position: initialFen,
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd,
+        orientation: role,
+        pieceTheme: 'https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/img/chesspieces/wikipedia/{piece}.png'
+      };
+      board = Chessboard('board', config);
+    }
+
+    // --- Stats updating: only run once per finished game ---
+    function applyStatsUpdate(data) {
+      const result = data.result;
+      if (!result) return;
+
+      const wName = data.whiteName || 'White';
+      const bName = data.blackName || 'Black';
+      const whiteSlug = slugify(wName);
+      const blackSlug = slugify(bName);
+
+      let whiteDelta = { games: 1, wins: 0, losses: 0, draws: 0 };
+      let blackDelta = { games: 1, wins: 0, losses: 0, draws: 0 };
+
+      if (result === 'white_resigned') {
+        whiteDelta.losses++;
+        blackDelta.wins++;
+      } else if (result === 'black_resigned') {
+        whiteDelta.wins++;
+        blackDelta.losses++;
+      } else if (result === 'white_checkmate') {
+        whiteDelta.wins++;
+        blackDelta.losses++;
+      } else if (result === 'black_checkmate') {
+        whiteDelta.losses++;
+        blackDelta.wins++;
+      } else if (result === 'draw_agreed' || result === 'draw_other') {
+        whiteDelta.draws++;
+        blackDelta.draws++;
+      }
+
+      // Update per-player stats via transactions
+      playersStatsRef.child(whiteSlug).transaction(player => {
+        if (!player) {
+          player = { name: wName, games: 0, wins: 0, losses: 0, draws: 0 };
+        }
+        player.name = wName;
+        player.games = (player.games || 0) + whiteDelta.games;
+        player.wins = (player.wins || 0) + whiteDelta.wins;
+        player.losses = (player.losses || 0) + whiteDelta.losses;
+        player.draws = (player.draws || 0) + whiteDelta.draws;
+        return player;
+      });
+
+      playersStatsRef.child(blackSlug).transaction(player => {
+        if (!player) {
+          player = { name: bName, games: 0, wins: 0, losses: 0, draws: 0 };
+        }
+        player.name = bName;
+        player.games = (player.games || 0) + blackDelta.games;
+        player.wins = (player.wins || 0) + blackDelta.wins;
+        player.losses = (player.losses || 0) + blackDelta.losses;
+        player.draws = (player.draws || 0) + blackDelta.draws;
+        return player;
+      });
+
+      // Head-to-head stats
+      const wSlug = whiteSlug;
+      const bSlug = blackSlug;
+      const pairKey = wSlug < bSlug ? (wSlug + '__vs__' + bSlug) : (bSlug + '__vs__' + wSlug);
+      const p1Slug = wSlug < bSlug ? wSlug : bSlug;
+      const p2Slug = wSlug < bSlug ? bSlug : wSlug;
+      const p1Name = p1Slug === wSlug ? wName : bName;
+      const p2Name = p2Slug === wSlug ? wName : bName;
+
+      let winnerSlug = null;
+      if (result === 'white_resigned') winnerSlug = bSlug;
+      if (result === 'black_resigned') winnerSlug = wSlug;
+      if (result === 'white_checkmate') winnerSlug = wSlug;
+      if (result === 'black_checkmate') winnerSlug = bSlug;
+
+      headToHeadRef.child(pairKey).transaction(record => {
+        if (!record) {
+          record = {
+            p1Slug,
+            p2Slug,
+            p1Name,
+            p2Name,
+            games: 0,
+            p1Wins: 0,
+            p2Wins: 0,
+            draws: 0
+          };
+        }
+        record.p1Name = p1Name;
+        record.p2Name = p2Name;
+        record.games = (record.games || 0) + 1;
+        if (winnerSlug === p1Slug) {
+          record.p1Wins = (record.p1Wins || 0) + 1;
+        } else if (winnerSlug === p2Slug) {
+          record.p2Wins = (record.p2Wins || 0) + 1;
+        } else {
+          record.draws = (record.draws || 0) + 1;
+        }
+        return record;
+      });
+    }
+
+    function maybeRunStatsUpdateOnce(data) {
+      if (!data || !data.result) return;
+      if (data.statsUpdated) return;
+
+      // Try to claim the "right" to update stats
+      gameRef.child('statsUpdated').transaction(current => {
+        if (current === true) return; // abort
+        return true;
+      }, (error, committed) => {
+        if (error || !committed) return;
+        // We won the race; run stats update
+        applyStatsUpdate(data);
+      });
+    }
+
+    // Listen to Firebase for game state
+    gameRef.on('value', snapshot => {
+      const data = snapshot.val();
+
+      if (!data || !data.fen) {
+        const startFen = game.fen();
+        const now = Date.now();
+        const initialData = {
+          fen: startFen,
+          createdAt: now,
+          lastMoveTs: null,
+          whiteName: role === 'white' ? myName : 'White',
+          blackName: role === 'black' ? myName : 'Black',
+          result: null,
+          drawOfferedBy: null,
+          statsUpdated: false
+        };
+        gameRef.set(initialData);
+        whiteName = initialData.whiteName;
+        blackName = initialData.blackName;
+        updateNameLabels();
+        lastTimestamp = now;
+        updateLastMoveText();
+        statusEl.textContent = 'New game created. Waiting for both players…';
+        return;
+      }
+
+      const fenFromDb = data.fen;
+      currentResult = data.result || null;
+      drawOfferedBy = data.drawOfferedBy || null;
+      whiteName = data.whiteName || 'White';
+      blackName = data.blackName || 'Black';
+
+      // Ensure our name stored
+      if (role === 'white' && data.whiteName !== myName) {
+        gameRef.update({ whiteName: myName });
+        whiteName = myName;
+      }
+      if (role === 'black' && data.blackName !== myName) {
+        gameRef.update({ blackName: myName });
+        blackName = myName;
+      }
+
+      const ts = data.lastMoveTs || data.createdAt || null;
+      lastTimestamp = ts;
+      updateLastMoveText();
+      updateNameLabels();
+
+      const currentFen = game.fen();
+      if (!board) {
+        game.load(fenFromDb);
+        createBoard(fenFromDb);
+      } else if (fenFromDb !== currentFen) {
+        game.load(fenFromDb);
+        board.position(fenFromDb);
+      }
+
+      updateTurnPill();
+      updateStatus();
+      updateDrawButtons();
+
+      // If finished, maybe update stats once
+      if (data.result) {
+        maybeRunStatsUpdateOnce(data);
+      }
+    });
+
+    // Button handlers
+
+    resetBtn.onclick = () => {
+      if (!confirm('Reset the game to the starting position? This will NOT reset stats already recorded for finished games.')) return;
+      game.reset();
+      const startFen = game.fen();
+      const now = Date.now();
+      gameRef.update({
+        fen: startFen,
+        createdAt: now,
+        lastMoveTs: null,
+        result: null,
+        drawOfferedBy: null,
+        statsUpdated: false
+      });
+      lastTimestamp = now;
+      currentResult = null;
+      drawOfferedBy = null;
+      updateTurnPill();
+      updateStatus();
+      updateLastMoveText();
+      updateDrawButtons();
+    };
+
+    resignBtn.onclick = () => {
+      if (currentResult) return;
+      if (!confirm('Are you sure you want to resign?')) return;
+
+      const now = Date.now();
+      const resultValue = role === 'white' ? 'white_resigned' : 'black_resigned';
+
+      gameRef.update({
+        result: resultValue,
+        lastMoveTs: now,
+        drawOfferedBy: null
+      });
+      currentResult = resultValue;
+      drawOfferedBy = null;
+      lastTimestamp = now;
+      updateStatus();
+      updateLastMoveText();
+      updateDrawButtons();
+    };
+
+    offerDrawBtn.onclick = () => {
+      if (currentResult || drawOfferedBy) return;
+      const now = Date.now();
+      const by = role === 'white' ? 'white' : 'black';
+      gameRef.update({
+        drawOfferedBy: by,
+        lastMoveTs: now
+      });
+      drawOfferedBy = by;
+      lastTimestamp = now;
+      updateStatus();
+      updateLastMoveText();
+      updateDrawButtons();
+    };
+
+    acceptDrawBtn.onclick = () => {
+      if (!drawOfferedBy || currentResult) return;
+      const now = Date.now();
+      gameRef.update({
+        result: 'draw_agreed',
+        drawOfferedBy: null,
+        lastMoveTs: now
+      });
+      currentResult = 'draw_agreed';
+      drawOfferedBy = null;
+      lastTimestamp = now;
+      updateStatus();
+      updateLastMoveText();
+      updateDrawButtons();
+    };
+
+    declineDrawBtn.onclick = () => {
+      if (!drawOfferedBy || currentResult) return;
+      const now = Date.now();
+      gameRef.update({
+        drawOfferedBy: null,
+        lastMoveTs: now
+      });
+      drawOfferedBy = null;
+      lastTimestamp = now;
+      updateStatus();
+      updateLastMoveText();
+      updateDrawButtons();
+    };
+  </script>
+</body>
+</html>
