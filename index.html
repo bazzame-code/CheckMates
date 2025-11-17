@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Online Chess Lobby</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+      max-width: 420px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    label {
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 1px #bfdbfe;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 600;
+      background: #10b981;
+      color: #ffffff;
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.2s ease;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35);
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    button.secondary {
+      background: #3b82f6;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.35);
+    }
+
+    button.ghost {
+      background: #ffffff;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      box-shadow: none;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .game-id-display {
+      font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background: #f9fafb;
+      padding: 6px 10px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-top: 6px;
+      word-break: break-all;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Play Chess Online</h1>
+    <p>Host a game and send the link to your friend, or join theirs. Works great for correspondence-style games.</p>
+
+    <div class="section">
+      <label for="name">Your name</label>
+      <input id="name" placeholder="e.g. Alex">
+    </div>
+
+    <div class="section">
+      <h3>Create a game</h3>
+      <button id="create-btn">Create new game</button>
+      <div id="created-info" class="small"></div>
+    </div>
+
+    <hr>
+
+    <div class="section">
+      <h3>Join a game</h3>
+      <label for="game-id-input">Friend’s game ID</label>
+      <input id="game-id-input" placeholder="Paste their game ID here">
+      <button class="secondary" id="join-btn">Join game</button>
+    </div>
+
+    <hr>
+
+    <button class="ghost" id="leaderboard-btn">View leaderboard & head-to-head</button>
+  </div>
+
+  <script>
+    function randomGameId() {
+      // Longish random ID to make guessing harder
+      return Math.random().toString(36).slice(2, 12);
+    }
+
+    function getNameOrDefault() {
+      const name = document.getElementById('name').value.trim();
+      return name || 'Player';
+    }
+
+    function basePath() {
+      // Works on GitHub Pages even when index.html isn't in the URL
+      let path = window.location.pathname;
+      if (path.endsWith('index.html')) {
+        path = path.replace('index.html', '');
+      }
+      return window.location.origin + path;
+    }
+
+    document.getElementById('create-btn').onclick = () => {
+      const id = randomGameId();
+      const name = encodeURIComponent(getNameOrDefault());
+      const gameUrl = `${basePath()}game.html?game=${id}&role=white&name=${name}`;
+      const info = document.getElementById('created-info');
+      info.innerHTML = `
+        Share this ID with your friend:<br>
+        <span class="game-id-display">${id}</span><br><br>
+        Or send this link:<br>
+        <span class="game-id-display">${gameUrl}</span>
+      `;
+      window.location.href = gameUrl;
+    };
+
+    document.getElementById('join-btn').onclick = () => {
+      const id = document.getElementById('game-id-input').value.trim();
+      if (!id) return;
+      const name = encodeURIComponent(getNameOrDefault());
+      const gameUrl = `${basePath()}game.html?game=${id}&role=black&name=${name}`;
+      window.location.href = gameUrl;
+    };
+
+    document.getElementById('leaderboard-btn').onclick = () => {
+      window.location.href = `${basePath()}leaderboard.html`;
+    };
+  </script>
+</body>
+</html>
