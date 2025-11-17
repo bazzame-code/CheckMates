@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chess Leaderboard</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+      max-width: 700px;
+      width: 100%;
+      margin: 32px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+
+    th {
+      font-weight: 600;
+      color: #374151;
+      background: #f9fafb;
+    }
+
+    tr:nth-child(even) td {
+      background: #f9fafb;
+    }
+
+    label {
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 1px #bfdbfe;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .field {
+      flex: 1 1 160px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 600;
+      background: #3b82f6;
+      color: #ffffff;
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.2s ease;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.35);
+      white-space: nowrap;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .small {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .back-link {
+      font-size: 13px;
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #d1fae5;
+      color: #065f46;
+      margin-left: 4px;
+    }
+
+    .muted {
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <div>
+        <h1>Chess Leaderboard</h1>
+        <p>Stats are updated automatically whenever a game finishes by checkmate, resignation, or agreed draw.</p>
+      </div>
+      <a class="back-link" href="index.html">← Back to lobby</a>
+    </div>
+
+    <section>
+      <h2>Overall players</h2>
+      <p class="small">Sorted by wins, then games played.</p>
+      <table id="players-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Games</th>
+            <th>Wins</th>
+            <th>Draws</th>
+            <th>Losses</th>
+          </tr>
+        </thead>
+        <tbody id="players-body">
+          <tr><td colspan="6" class="muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Head-to-head</h2>
+      <p class="small">Check the record between two players by name (case-insensitive).</p>
+
+      <div class="row">
+        <div class="field">
+          <label for="p1-input">Player 1 name</label>
+          <input id="p1-input" placeholder="e.g. Alex">
+        </div>
+        <div class="field">
+          <label for="p2-input">Player 2 name</label>
+          <input id="p2-input" placeholder="e.g. Jamie">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button id="head-btn">Show head-to-head</button>
+        </div>
+      </div>
+
+      <p id="head-result" class="small muted" style="margin-top:8px;">No match yet – enter two names and click.</p>
+    </section>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <!-- Your Firebase config -->
+  <script src="firebase-config.js"></script>
+
+  <script>
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const playersStatsRef = db.ref('stats/players');
+    const headToHeadRef = db.ref('stats/headToHead');
+
+    function slugify(name) {
+      return (name || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'player';
+    }
+
+    // Load and display players leaderboard
+    const playersBody = document.getElementById('players-body');
+
+    playersStatsRef.on('value', snapshot => {
+      const data = snapshot.val() || {};
+      const list = Object.keys(data).map(slug => ({
+        slug,
+        name: data[slug].name || slug,
+        games: data[slug].games || 0,
+        wins: data[slug].wins || 0,
+        draws: data[slug].draws || 0,
+        losses: data[slug].losses || 0
+      }));
+
+      if (list.length === 0) {
+        playersBody.innerHTML = '<tr><td colspan="6" class="muted">No games recorded yet.</td></tr>';
+        return;
+      }
+
+      list.sort((a, b) => {
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        if (b.games !== a.games) return b.games - a.games;
+        return a.name.localeCompare(b.name);
+      });
+
+      playersBody.innerHTML = '';
+      list.forEach((p, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${p.name}</td>
+          <td>${p.games}</td>
+          <td>${p.wins}</td>
+          <td>${p.draws}</td>
+          <td>${p.losses}</td>
+        `;
+        playersBody.appendChild(tr);
+      });
+    });
+
+    // Head-to-head search
+    const p1Input = document.getElementById('p1-input');
+    const p2Input = document.getElementById('p2-input');
+    const headBtn = document.getElementById('head-btn');
+    const headResult = document.getElementById('head-result');
+
+    headBtn.onclick = () => {
+      const n1 = p1Input.value.trim();
+      const n2 = p2Input.value.trim();
+      if (!n1 || !n2) {
+        headResult.textContent = 'Please enter two names.';
+        headResult.classList.remove('muted');
+        return;
+      }
+      const s1 = slugify(n1);
+      const s2 = slugify(n2);
+      if (s1 === s2) {
+        headResult.textContent = 'Head-to-head needs two different players.';
+        headResult.classList.remove('muted');
+        return;
+      }
+      const pairKey = s1 < s2 ? (s1 + '__vs__' + s2) : (s2 + '__vs__' + s1);
+      headToHeadRef.child(pairKey).once('value').then(snap => {
+        const record = snap.val();
+        if (!record) {
+          headResult.textContent = `No recorded games between "${n1}" and "${n2}" yet.`;
+          headResult.classList.remove('muted');
+          return;
+        }
+        const p1Name = record.p1Name || n1;
+        const p2Name = record.p2Name || n2;
+        const games = record.games || 0;
+        const p1Wins = record.p1Wins || 0;
+        const p2Wins = record.p2Wins || 0;
+        const draws = record.draws || 0;
+        headResult.innerHTML = `
+          <strong>${p1Name}</strong> vs <strong>${p2Name}</strong><br>
+          Games: ${games} &nbsp;•&nbsp;
+          ${p1Name} wins: ${p1Wins} &nbsp;•&nbsp;
+          ${p2Name} wins: ${p2Wins} &nbsp;•&nbsp;
+          Draws: ${draws}
+        `;
+        headResult.classList.remove('muted');
+      });
+    };
+  </script>
+</body>
+</html>
