@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Online Chess Game</title>
 
-  <!-- Chessboard.js CSS (no images included – we host them ourselves) -->
+  <!-- Chessboard.js CSS -->
   <link rel="stylesheet"
         href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 
@@ -291,6 +291,25 @@
     let whiteName = 'White';
     let blackName = 'Black';
 
+    // Simple inline-SVG piece renderer (no external images)
+    function pieceTheme(piece) {
+      const isWhite = piece.charAt(0) === 'w';
+      const label = piece.charAt(1).toUpperCase(); // k,q,r,b,n,p
+      const bg = isWhite ? '#ffffff' : '#111827';
+      const fg = isWhite ? '#111827' : '#f9fafb';
+
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 45 45">
+          <rect x="4" y="4" width="37" height="37" rx="6" ry="6"
+                fill="${bg}" stroke="#111827" stroke-width="2"/>
+          <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+                font-size="24" font-weight="700" fill="${fg}">${label}</text>
+        </svg>`;
+
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
     function slugify(name) {
       return (name || '')
         .trim()
@@ -460,8 +479,7 @@
         onDrop: onDrop,
         onSnapEnd: onSnapEnd,
         orientation: role,
-        // 👇 use your OWN hosted images in the repo
-    pieceTheme: 'https://raw.githubusercontent.com/bazzame-code/CheckMates/main/img/chesspieces/wikipedia/{piece}.png'
+        pieceTheme: pieceTheme // <- inline SVG pieces
       };
       board = Chessboard('board', config);
     }
